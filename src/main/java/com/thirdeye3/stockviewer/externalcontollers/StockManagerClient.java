@@ -21,12 +21,12 @@ public interface StockManagerClient {
     @PostMapping("/sm/stocks/updatePrice")
     Response<String> updatePriceOfStock(@RequestBody List<Stock> stockList);
     
-    @GetMapping("/sm/stocks/{page}/{size}")
+    @GetMapping("/sm/stocks/all/{page}/{size}")
     Response<List<Stock>> getStocks(
             @PathVariable("page") long page,
             @PathVariable("size") long size
     );
 
-    @GetMapping("/sm/stocks/size")
+    @GetMapping("/sm/stocks/all/size")
     Response<Long> getStockSize();
 }
