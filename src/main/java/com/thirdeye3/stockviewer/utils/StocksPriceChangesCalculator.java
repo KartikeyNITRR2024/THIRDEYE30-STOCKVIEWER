@@ -110,6 +110,7 @@ public class StocksPriceChangesCalculator {
                 }
 
                 try {
+                    logger.info("stock "+stock);
                     if (threshold.getTimeGapInSeconds() != -1 && threshold.getTimeGapInSeconds() != -2) {
                         Timestamp timeToCheckFor = new Timestamp(
                                 stock.getCurrentTime().getTime() - threshold.getTimeGapInSeconds() * 1000);
@@ -144,6 +145,11 @@ public class StocksPriceChangesCalculator {
                             gapIs = (gapIs / stockToCheckFor.getTodaysOpeningPrice()) * 100;
                         }
                     }
+                    
+                    logger.info("currentTimeGap "+currentTimeGap);
+                    logger.info("gapIs "+gapIs);
+                    logger.info("timeLimit "+timeLimit);
+                    
 
                     if (currentTimeGap != null && gapIs != null && 
                         gapIs >= threshold.getPriceGap() && timeLimit) {
