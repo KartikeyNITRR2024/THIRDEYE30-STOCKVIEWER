@@ -84,8 +84,6 @@ public class StocksPriceChangesCalculator {
         }
 
         Long limitInTimeSeconds = propertyService.getBufferTimeGapInSeconds() / 2;
-        logger.info("Calculating price changes for Stock ID: {} at time {}", 
-                     stock.getUniqueId(), stock.getCurrentTime());
 
         for (Long thresholdGroupId : thresholdService.getthresholdGroup().keySet()) {
             ThresholdGroupDto thresholdGroup = thresholdService.getthresholdGroup().get(thresholdGroupId);
@@ -94,9 +92,6 @@ public class StocksPriceChangesCalculator {
                 continue;
             }
 
-            logger.info("Evaluating Threshold Group: {} for Stock: {}", 
-                         thresholdGroupId, stock.getUniqueId());
-
             for (ThresholdDto threshold : thresholdGroup.getThresholds()) {
                 Double gapIs = null;
                 Boolean timeLimit = true;
@@ -104,8 +99,7 @@ public class StocksPriceChangesCalculator {
                 Long currentTimeGap = threshold.getTimeGapInSeconds();
 
                 if (stockToCheckFor == null) {
-                    logger.info("Stock {} not found in DB, skipping threshold group {}", 
-                                 stock.getUniqueId(), thresholdGroupId);
+  
                     continue;
                 }
 
@@ -145,11 +139,6 @@ public class StocksPriceChangesCalculator {
                             gapIs = (gapIs / stockToCheckFor.getTodaysOpeningPrice()) * 100;
                         }
                     }
-                    
-                    logger.info("currentTimeGap "+currentTimeGap);
-                    logger.info("gapIs "+gapIs);
-                    logger.info("timeLimit "+timeLimit);
-                    
 
                     if (currentTimeGap != null && gapIs != null && 
                         gapIs >= threshold.getPriceGap() && timeLimit) {
@@ -170,8 +159,7 @@ public class StocksPriceChangesCalculator {
                                 stock.getCurrentTime());
 
                         stock.getPriceChangeList().add(priceChange);
-                        logger.info("Stock {} triggered threshold {} | Gap: {} | Type: {}", 
-                                    stock.getUniqueId(), thresholdGroupId, gapIs, threshold.getType());
+          
                     }
                 } catch (Exception e) {
                     logger.info("Error calculating change for stock {} in group {}: {}", 
@@ -185,8 +173,6 @@ public class StocksPriceChangesCalculator {
                         stock.getUniqueId(), stock.getPriceChangeList().size());
             return CompletableFuture.completedFuture(stock);
         }
-
-        logger.info("Stock {} has no significant changes.", stock.getUniqueId());
         return CompletableFuture.completedFuture(null);
     }
 
@@ -214,13 +200,11 @@ public class StocksPriceChangesCalculator {
         }
 
         if (!currentstatusId.equals(holdedStock.getCurrentStatus())) {
-            logger.info("Holded stock {} status changed from {} to {}", 
-                        holdedStock.getUniqueId(), holdedStock.getCurrentStatus(), currentstatusId);
-            holdedStock.setCurrentStatus(currentstatusId);
+                     holdedStock.setCurrentStatus(currentstatusId);
             return CompletableFuture.completedFuture(holdedStock);
         }
 
-        logger.info("Holded stock {} has no status change.", holdedStock.getUniqueId());
+     
         return CompletableFuture.completedFuture(null);
     }
 }
