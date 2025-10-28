@@ -21,89 +21,107 @@ public class WebscrapperServiceImpl implements WebscrapperService {
 
     private static final Logger logger = LoggerFactory.getLogger(WebscrapperServiceImpl.class);
 
-    private ConcurrentMap<Long, CopyOnWriteArrayList<Stock>> dataStoringMap = new ConcurrentHashMap<>();
+    private final ConcurrentMap<Long, CopyOnWriteArrayList<Stock>> dataStoringMap = new ConcurrentHashMap<>();
 
-    @Autowired
-    private TimeManager timeManager;
-
-    @Autowired
-    private MachineService machineService;
-
-    @Autowired
-    private StocksPriceChangesCalculator stocksPriceChangesCalculator;
-
-    @Autowired
-    private StockService stockService;
-
-    @Autowired
-    private HoldedStockService holdedStockService;
-
-    @Autowired
-    private MessageBrokerService messageBrokerService;
+    @Autowired private TimeManager timeManager;
+    @Autowired private MachineService machineService;
+    @Autowired private StocksPriceChangesCalculator stocksPriceChangesCalculator;
+    @Autowired private StockService stockService;
+    @Autowired private HoldedStockService holdedStockService;
+    @Autowired private MessageBrokerService messageBrokerService;
 
     @Override
     public boolean processWebscrapper(List<Stock> stocks, Integer webscrapperId, String webscrapperCode) {
-        machineService.validateMachine(webscrapperId, webscrapperCode);
+        logger.info("==== Starting Webscrapper Processing ====");
+        logger.info("Webscrapper ID: {} | Code: {}", webscrapperId, webscrapperCode);
+        logger.info("Received {} stock entries", stocks != null ? stocks.size() : 0);
 
+        // Validate machine
+        machineService.validateMachine(webscrapperId, webscrapperCode);
+        logger.info("Machine validation completed successfully.");
+
+        // Update DB prices if allowed
         if (timeManager.allowPriceUpdate()) {
-            logger.info("Updating stocks price in database.");
+            logger.info("Allowed time window detected — updating stock prices in DB at {}", timeManager.getCurrentTime());
             stockService.updateMorningAndEveningPriceOfStocks(stocks);
+        } else {
+            logger.info("Price update skipped — not in allowed time window.");
         }
 
         List<Stock> changedStocks = new CopyOnWriteArrayList<>();
 
-        logger.info("DataProcessing Starting time is : {}", timeManager.getCurrentTime());
+        logger.info("Data Processing started at {}", timeManager.getCurrentTime());
 
+        int processed = 0;
         for (Stock stock : stocks) {
-            if (stock.getUniqueId() != null && stock.getUniqueId() > 0
-                    && stock.getPrice() != null && stock.getPrice() > 0) {
+            processed++;
 
-                CopyOnWriteArrayList<Stock> stockList = dataStoringMap.computeIfAbsent(
-                        stock.getUniqueId(), k -> new CopyOnWriteArrayList<>());
+            if (stock.getUniqueId() == null || stock.getUniqueId() <= 0 ||
+                stock.getPrice() == null || stock.getPrice() <= 0) {
+                continue;
+            }
 
-                CompletableFuture<Stock> future =
-                        stocksPriceChangesCalculator.calculateChanges(stock, stockList);
+            CopyOnWriteArrayList<Stock> stockList = dataStoringMap.computeIfAbsent(
+                stock.getUniqueId(), k -> new CopyOnWriteArrayList<>());
 
-                Stock changedStock = future.join();
-                if (changedStock != null) {
-                    changedStocks.add(changedStock);
-                }
+            CompletableFuture<Stock> future =
+                    stocksPriceChangesCalculator.calculateChanges(stock, stockList);
 
-                if (stockList.size() >= 100) {
-                    stockList.remove(0);
-                }
-                stockList.add(new Stock(stock.getCurrentTime(), stock.getPrice()));
+            Stock changedStock = future.join();
+            if (changedStock != null) {
+                changedStocks.add(changedStock);
+            }
+
+            if (stockList.size() >= 100) {
+                stockList.remove(0);
+            }
+            stockList.add(new Stock(stock.getCurrentTime(), stock.getPrice()));
+
+            if (processed % 100 == 0) {
+                logger.info("Processed {} stocks so far...", processed);
             }
         }
 
-        logger.info("DataProcessing Ending time is : {}", timeManager.getCurrentTime());
+        logger.info("Data Processing finished at {} | Total processed: {}", 
+                    timeManager.getCurrentTime(), processed);
 
         List<PriceChange> priceChangeList = changedStocks.stream()
                 .flatMap(s -> s.getPriceChangeList().stream())
                 .collect(Collectors.toList());
 
-        logger.info("Total detected changes: {}", priceChangeList.size());
+        logger.info("Total detected price changes: {}", priceChangeList.size());
         messageBrokerService.sendMessages("thresold", priceChangeList);
+        logger.info("Sent {} messages to broker topic 'thresold'", priceChangeList.size());
 
-        return machineService.isUpdateMachineRequiredNeeded(webscrapperId, webscrapperCode);
+        boolean updateRequired = machineService.isUpdateMachineRequiredNeeded(webscrapperId, webscrapperCode);
+        logger.info("Machine update required: {}", updateRequired);
+        logger.info("==== Webscrapper Processing Completed ====");
+
+        return updateRequired;
     }
 
     @Override
     public void clearMap() {
-        logger.info("Refreshing all data.");
+        logger.info("Clearing data map. Current size: {}", dataStoringMap.size());
         dataStoringMap.clear();
+        logger.info("Data map cleared successfully at {}", timeManager.getCurrentTime());
     }
-    
+
     @Override
     public ConcurrentMap<Long, CopyOnWriteArrayList<Stock>> getDataStoringMap() {
-		return dataStoringMap;
-	}
+        logger.info("Returning data map with {} entries", dataStoringMap.size());
+        return dataStoringMap;
+    }
 
-	@Override
+    @Override
     public boolean processWebscrapper(Map<Long, Stock> stocks, Integer webscrapperId, String webscrapperCode) {
-        machineService.validateMachine(webscrapperId, webscrapperCode);
+        logger.info("==== Starting HoldedStock Processing ====");
+        logger.info("Webscrapper ID: {} | Incoming map size: {}", webscrapperId, stocks.size());
 
-        logger.info("DataProcessing Starting time is : {}", timeManager.getCurrentTime());
+        machineService.validateMachine(webscrapperId, webscrapperCode);
+        logger.info("Machine validation successful for HoldedStock processing.");
+
+        logger.info("Processing HoldedStocks at {}", timeManager.getCurrentTime());
 
         List<HoldedStock> statusChangesStock = holdedStockService.getHoldedStocks().stream()
                 .filter(holdedStock -> stocks.containsKey(holdedStock.getUniqueId()))
@@ -113,11 +131,16 @@ public class WebscrapperServiceImpl implements WebscrapperService {
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
 
-        logger.info("DataProcessing Ending time is : {}", timeManager.getCurrentTime());
+        logger.info("HoldedStock processing finished at {}", timeManager.getCurrentTime());
+        logger.info("Detected {} holded stock changes", statusChangesStock.size());
 
-        logger.info("Total stocks with detected changes: {}", statusChangesStock.size());
         messageBrokerService.sendMessages("holdedstock", statusChangesStock);
+        logger.info("Sent {} messages to broker topic 'holdedstock'", statusChangesStock.size());
 
-        return machineService.isUpdateMachineRequiredNeeded(webscrapperId, webscrapperCode);
+        boolean updateRequired = machineService.isUpdateMachineRequiredNeeded(webscrapperId, webscrapperCode);
+        logger.info("Machine update required (HoldedStock): {}", updateRequired);
+        logger.info("==== HoldedStock Processing Completed ====");
+
+        return updateRequired;
     }
 }
