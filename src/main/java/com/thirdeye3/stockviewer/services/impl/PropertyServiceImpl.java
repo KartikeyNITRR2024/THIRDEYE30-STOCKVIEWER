@@ -68,7 +68,7 @@ public class PropertyServiceImpl implements PropertyService {
                     (int) properties.getOrDefault("EP_END_MINUTE",30),
                     (int) properties.getOrDefault("EP_END_SECOND",30)
             );
-            bufferTimeGapInSeconds = (long) properties.getOrDefault("BUFFER_TIME_GAP_IN_SECONDS",10L);
+            bufferTimeGapInSeconds = ((Number) properties.getOrDefault("BUFFER_TIME_GAP_IN_SECONDS", 10L)).longValue();
             String gapsString = properties.getOrDefault("FILTER_FOR_TIME_THRESOLD", "0,60,1,61,120,5,121,240,10,241,400,20").toString();
             gaps = IntStream.range(0, gapsString.split(",").length / 3)
             	    .mapToObj(i -> {
