@@ -104,7 +104,6 @@ public class StocksPriceChangesCalculator {
                 }
 
                 try {
-                    logger.info("stock "+stock);
                     if (threshold.getTimeGapInSeconds() != -1 && threshold.getTimeGapInSeconds() != -2) {
                         Timestamp timeToCheckFor = new Timestamp(
                                 stock.getCurrentTime().getTime() - threshold.getTimeGapInSeconds() * 1000);
@@ -169,8 +168,6 @@ public class StocksPriceChangesCalculator {
         }
 
         if (stock.getPriceChangeList() != null && !stock.getPriceChangeList().isEmpty()) {
-            logger.info("Stock {} has {} detected price changes.", 
-                        stock.getUniqueId(), stock.getPriceChangeList().size());
             return CompletableFuture.completedFuture(stock);
         }
         return CompletableFuture.completedFuture(null);

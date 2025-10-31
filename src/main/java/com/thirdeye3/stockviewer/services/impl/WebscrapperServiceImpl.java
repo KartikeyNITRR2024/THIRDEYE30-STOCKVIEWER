@@ -82,13 +82,11 @@ public class WebscrapperServiceImpl implements WebscrapperService {
 
     @Override
     public void clearMap() {
-        logger.info("Clearing data map. Current size: {}", dataStoringMap.size());
         dataStoringMap.clear();
     }
 
     @Override
     public ConcurrentMap<Long, CopyOnWriteArrayList<Stock>> getDataStoringMap() {
-        logger.info("Returning data map with {} entries", dataStoringMap.size());
         return dataStoringMap;
     }
 
