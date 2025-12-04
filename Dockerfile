@@ -11,7 +11,7 @@ COPY . .
 RUN mvn clean package -DskipTests
 
 # Stage 2: Create a lightweight runtime image
-FROM openjdk:17-slim
+FROM eclipse-temurin:17-jre-alpine
 
 # Copy the correct JAR file from the build stage
 COPY --from=build /app/target/THIRDEYE3.0_STOCKVIEWER-0.0.1-SNAPSHOT.jar app.jar
