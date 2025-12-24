@@ -43,7 +43,7 @@ public class StockServiceImpl implements StockService {
 			for(Stock stock : stocks1)
 			{
 				stock.setTodaysOpeningPrice(stock.getPrice());
-				stock.setLastNightClosingPrice(stock.getLastNightClosingPrice());
+				stock.setLastNightClosingPrice(stock.getPrice());
 				if(stocks.get(stock.getUniqueId()).getTodaysOpeningPrice() == null)
 				{
 					stocks.get(stock.getUniqueId()).setTodaysOpeningPrice(stock.getPrice());
