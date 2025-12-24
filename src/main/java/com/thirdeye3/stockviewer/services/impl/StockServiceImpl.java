@@ -35,6 +35,11 @@ public class StockServiceImpl implements StockService {
 	public void updateMorningAndEveningPriceOfStocks(List<Stock> stocks1)
 	{
 		try {
+			
+			if (stocks == null || stocks.isEmpty()) {
+	            fetchStocks();
+	        }
+			
 			for(Stock stock : stocks1)
 			{
 				stock.setTodaysOpeningPrice(stock.getPrice());
@@ -53,7 +58,7 @@ public class StockServiceImpl implements StockService {
 		}
 		catch(Exception ex)
 		{
-			logger.error("Failed to updated stock price in database" + ex.getMessage());
+			logger.error("Failed to updated stock price in database " + ex.getMessage());
 		}
 	}
 	
