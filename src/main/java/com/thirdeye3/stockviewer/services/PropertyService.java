@@ -27,4 +27,8 @@ public interface PropertyService {
 
 	List<TimeGap> getGaps();
 
+	LocalTime getMarketEnd();
+
+	LocalTime getMarketStart();
+
 }

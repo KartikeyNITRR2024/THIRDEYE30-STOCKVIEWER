@@ -34,6 +34,8 @@ public class PropertyServiceImpl implements PropertyService {
     private LocalTime eveningPriceUpdaterStartTime = null;
     private LocalTime eveningPriceUpdaterEndTime = null;
     private Long bufferTimeGapInSeconds = null;
+    private LocalTime marketStart = null;
+    private LocalTime marketEnd = null;
     private List<TimeGap> gaps = null;
 
 
@@ -68,6 +70,19 @@ public class PropertyServiceImpl implements PropertyService {
                     (int) properties.getOrDefault("EP_END_MINUTE",30),
                     (int) properties.getOrDefault("EP_END_SECOND",30)
             );
+            
+            marketStart = LocalTime.of(
+                    (int) properties.get("START_TIME_HOUR"),
+                    (int) properties.get("START_TIME_MINUTE"),
+                    (int) properties.get("START_TIME_SECOND")
+            );
+
+            marketEnd = LocalTime.of(
+                    (int) properties.get("END_TIME_HOUR"),
+                    (int) properties.get("END_TIME_MINUTE"),
+                    (int) properties.get("END_TIME_SECOND")
+            );
+            
             bufferTimeGapInSeconds = ((Number) properties.getOrDefault("BUFFER_TIME_GAP_IN_SECONDS", 10L)).longValue();
             String gapsString = properties.getOrDefault("FILTER_FOR_TIME_THRESOLD", "0,60,1,61,120,5,121,240,10,241,400,20").toString();
             gaps = IntStream.range(0, gapsString.split(",").length / 3)
@@ -169,9 +184,21 @@ public class PropertyServiceImpl implements PropertyService {
         }
 		return gaps;
 	}
-    
-    
-    
-    
+
+    @Override
+	public LocalTime getMarketStart() {
+		if (marketStart == null) {
+        	fetchProperties();
+        }
+		return marketStart;
+	}
+
+    @Override
+	public LocalTime getMarketEnd() {
+		if (marketEnd == null) {
+        	fetchProperties();
+        }
+		return marketEnd;
+	}
 }
 

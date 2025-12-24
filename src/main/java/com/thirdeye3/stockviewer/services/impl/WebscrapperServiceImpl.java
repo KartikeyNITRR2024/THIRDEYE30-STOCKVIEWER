@@ -32,50 +32,55 @@ public class WebscrapperServiceImpl implements WebscrapperService {
 
     @Override
     public boolean processWebscrapper(List<Stock> stocks, Integer webscrapperId, String webscrapperCode) {
-        machineService.validateMachine(webscrapperId, webscrapperCode);
+    	
+    	machineService.validateMachine(webscrapperId, webscrapperCode);
         if (timeManager.allowPriceUpdate()) {
             logger.info("Allowed time window detected — updating stock prices in DB at {}", timeManager.getCurrentTime());
             stockService.updateMorningAndEveningPriceOfStocks(stocks);
-        } 
-
-        List<Stock> changedStocks = new CopyOnWriteArrayList<>();
-
-        logger.info("Data Processing started at {}", timeManager.getCurrentTime());
-
-        int processed = 0;
-        for (Stock stock : stocks) {
-            processed++;
-
-            if (stock.getUniqueId() == null || stock.getUniqueId() <= 0 ||
-                stock.getPrice() == null || stock.getPrice() <= 0) {
-                continue;
-            }
-
-            CopyOnWriteArrayList<Stock> stockList = dataStoringMap.computeIfAbsent(
-                stock.getUniqueId(), k -> new CopyOnWriteArrayList<>());
-
-            CompletableFuture<Stock> future =
-                    stocksPriceChangesCalculator.calculateChanges(stock, stockList);
-
-            Stock changedStock = future.join();
-            if (changedStock != null) {
-                changedStocks.add(changedStock);
-            }
-
-            if (stockList.size() >= 100) {
-                stockList.remove(0);
-            }
-            stockList.add(new Stock(stock.getCurrentTime(), stock.getPrice()));
         }
+    	
+    	if(timeManager.isMarketOpen())
+    	{ 
+            List<Stock> changedStocks = new CopyOnWriteArrayList<>();
 
-        logger.info("Data Processing finished at {} | Total processed: {}", 
-                    timeManager.getCurrentTime(), processed);
+            logger.info("Data Processing started at {}", timeManager.getCurrentTime());
 
-        List<PriceChange> priceChangeList = changedStocks.stream()
-                .flatMap(s -> s.getPriceChangeList().stream())
-                .collect(Collectors.toList());
-        messageBrokerService.sendMessages("thresold", priceChangeList);
+            int processed = 0;
+            for (Stock stock : stocks) {
+                processed++;
 
+                if (stock.getUniqueId() == null || stock.getUniqueId() <= 0 ||
+                    stock.getPrice() == null || stock.getPrice() <= 0) {
+                    continue;
+                }
+
+                CopyOnWriteArrayList<Stock> stockList = dataStoringMap.computeIfAbsent(
+                    stock.getUniqueId(), k -> new CopyOnWriteArrayList<>());
+
+                CompletableFuture<Stock> future =
+                        stocksPriceChangesCalculator.calculateChanges(stock, stockList);
+
+                Stock changedStock = future.join();
+                if (changedStock != null) {
+                    changedStocks.add(changedStock);
+                }
+
+                if (stockList.size() >= 100) {
+                    stockList.remove(0);
+                }
+                stockList.add(new Stock(stock.getCurrentTime(), stock.getPrice()));
+            }
+
+            logger.info("Data Processing finished at {} | Total processed: {}", 
+                        timeManager.getCurrentTime(), processed);
+
+            List<PriceChange> priceChangeList = changedStocks.stream()
+                    .flatMap(s -> s.getPriceChangeList().stream())
+                    .collect(Collectors.toList());
+            messageBrokerService.sendMessages("thresold", priceChangeList);
+    	} else {
+    		logger.info("Market is closed. Cannot update status");
+    	}
         boolean updateRequired = machineService.isUpdateMachineRequiredNeeded(webscrapperId, webscrapperCode);
         return updateRequired;
     }

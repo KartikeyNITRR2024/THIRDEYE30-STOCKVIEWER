@@ -24,6 +24,9 @@ public class TimeManager {
     @Value("${thirdeye.timebufferinseconds}")
     private Long timeBufferInSeconds;
     
+    @Value("${thirdeye.istesting}")
+    private Integer isTesting;
+    
     @Autowired
     PropertyService propertyService;
 
@@ -53,6 +56,10 @@ public class TimeManager {
     }
     
     public boolean allowPriceUpdate() {
+    	if(isTesting == 1)
+    	{
+    		return true;
+    	}
         ZonedDateTime adjustedTime = ZonedDateTime.now(ZoneId.of(timeZone)).minusSeconds(timeBufferInSeconds);
         DayOfWeek day = adjustedTime.getDayOfWeek();
         boolean isWeekday = day != DayOfWeek.SATURDAY && day != DayOfWeek.SUNDAY;
@@ -78,6 +85,19 @@ public class TimeManager {
     }
 
 
+    public boolean isMarketOpen() {
+    	if(isTesting == 1)
+    	{
+    		return true;
+    	}
+        ZonedDateTime now = ZonedDateTime.now(ZoneId.of(timeZone));
+        LocalTime currentTime = now.toLocalTime();
+        DayOfWeek day = now.getDayOfWeek();
+        boolean isWeekday = day != DayOfWeek.SATURDAY && day != DayOfWeek.SUNDAY;
+        boolean isWithinMarketHours = !currentTime.isBefore(propertyService.getMarketStart())
+                && !currentTime.isAfter(propertyService.getMarketEnd());
+        return isWeekday && isWithinMarketHours;
+    }
 
 
 
