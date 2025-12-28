@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import com.thirdeye3.stockviewer.dtos.HoldedStock;
 import com.thirdeye3.stockviewer.dtos.PriceChange;
 import com.thirdeye3.stockviewer.dtos.Stock;
+import com.thirdeye3.stockviewer.exceptions.StockException;
 import com.thirdeye3.stockviewer.services.*;
 import com.thirdeye3.stockviewer.utils.StocksPriceChangesCalculator;
 import com.thirdeye3.stockviewer.utils.TimeManager;
@@ -119,4 +120,40 @@ public class WebscrapperServiceImpl implements WebscrapperService {
         boolean updateRequired = machineService.isUpdateMachineRequiredNeeded(webscrapperId, webscrapperCode);
         return updateRequired;
     }
+
+    @Override
+    public Map<Long, Integer> getProcessingInfo()
+    {
+    	logger.info("Returing processing info of {} stocks", dataStoringMap.size());
+    	Map<Long, Integer> processingStocksInfo = new HashMap<>();
+    	for(Long key : dataStoringMap.keySet())
+    	{
+    		processingStocksInfo.put(key, dataStoringMap.get(key).size());
+    	}
+		return processingStocksInfo;
+    }
+    
+    @Override
+    public Map<Long, List<Stock>> getProcessingDetails()
+    {
+    	logger.info("Returing processing details of {} stocks", dataStoringMap.size());
+    	Map<Long, List<Stock>> processingStocksInfo = new HashMap<>();
+        dataStoringMap.forEach((key, stockList) -> {
+            processingStocksInfo.put(key, new ArrayList<>(stockList));
+        });
+        return processingStocksInfo;
+    }
+
+    @Override
+    public List<Stock> getProcessingDetailsById(Long stockId) {
+        logger.info("Returning processing details for stockId {}", stockId);
+        List<Stock> stocks = dataStoringMap.get(stockId);
+        if (stocks == null || stocks.isEmpty()) {
+            throw new StockException(
+                    "No processing details found for stockId: " + stockId
+            );
+        }
+        return new ArrayList<>(stocks);
+    }
+
 }

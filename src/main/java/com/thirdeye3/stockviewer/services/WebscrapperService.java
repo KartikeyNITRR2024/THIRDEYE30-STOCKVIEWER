@@ -13,6 +13,9 @@ public interface WebscrapperService {
 	boolean processWebscrapper(List<Stock> stocks, Integer webscrapperId, String webscrapperCode);
 	boolean processWebscrapper(Map<Long, Stock> stocks, Integer webscrapperId, String webscrapperCode);
 	ConcurrentMap<Long, CopyOnWriteArrayList<Stock>> getDataStoringMap();
+	Map<Long, Integer> getProcessingInfo();
+	Map<Long, List<Stock>> getProcessingDetails();
+	List<Stock> getProcessingDetailsById(Long stockId);
 
 
 }
