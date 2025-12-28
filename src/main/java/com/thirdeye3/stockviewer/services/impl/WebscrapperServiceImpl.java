@@ -33,6 +33,8 @@ public class WebscrapperServiceImpl implements WebscrapperService {
     @Override
     public boolean processWebscrapper(List<Stock> stocks, Integer webscrapperId, String webscrapperCode) {
     	
+    	logger.info("Going to process {} stocks.", stocks.size());
+    	
     	machineService.validateMachine(webscrapperId, webscrapperCode);
         if (timeManager.allowPriceUpdate()) {
             logger.info("Allowed time window detected — updating stock prices in DB at {}", timeManager.getCurrentTime());
